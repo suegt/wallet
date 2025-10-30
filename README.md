@@ -28,7 +28,7 @@ A modern, cryptocurrency wallet interface built with Next.js and React. This app
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/suegt/wallet/
 cd ledger-wallet-app
 
 # Install dependencies
