@@ -1,5 +1,7 @@
 # Ledger Wallet App
 
+<img width="2133" height="1050" alt="localhost_3000_" src="https://github.com/user-attachments/assets/a0d5d6e8-6b6c-4945-90f4-962ba522d6cb" />
+
 A modern, cryptocurrency wallet interface built with Next.js and React. This application demonstrates a Ledger-like wallet interface with real-time portfolio tracking, multi-chain account management, and transaction history.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
