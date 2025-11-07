@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { Account, Transaction } from '../types'
 
 function iconFor(symbol: string) {
@@ -15,6 +15,7 @@ function iconFor(symbol: string) {
     </svg>
   )
   if (s === 'SOL') return '◎'
+  if (s === 'USDT') return '💵'
   return '◉'
 }
 
@@ -33,8 +34,13 @@ interface AccountsPageProps {
  * Accounts page - detailed view of all accounts
  */
 export default function AccountsPage({ accounts, transactions, onSend, onReceive }: AccountsPageProps) {
+  const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<'name' | 'value' | 'balance'>('value')
   const [filterBy, setFilterBy] = useState<string>('all')
+
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 600)
+  }, [])
 
   const totalValue = accounts.reduce((sum, a) => sum + (a.balance * a.price), 0)
   const totalAccounts = accounts.length
@@ -67,21 +73,42 @@ export default function AccountsPage({ accounts, transactions, onSend, onReceive
     const accountTxs = transactions.filter(tx => tx.acc === accountName)
     if (accountTxs.length === 0) return 'No activity'
     const latest = accountTxs[0].t
-    const date = new Date(latest)
+    // Parse date in format "YYYY-MM-DD HH:mm"
+    const dateMatch = latest.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/)
+    if (!dateMatch) return latest
+    
+    const [, year, month, day, hours, minutes] = dateMatch
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes))
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffMins = Math.floor(diffMs / 60000)
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
     
+    if (diffMins < 1) return 'Just now'
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 30) return `${diffDays}d ago`
     return date.toLocaleDateString()
   }
 
+  // Skeleton loader
+  const SkeletonCard = ({ height = '100px', width = '100%' }: { height?: string, width?: string }) => (
+    <div style={{
+      width,
+      height,
+      background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%)',
+      backgroundSize: '200% 100%',
+      borderRadius: '12px',
+      animation: 'shimmer 1.5s ease-in-out infinite'
+    }} />
+  )
+
   return (
-    <main className="main">
+    <main className="main" style={{
+      animation: loading ? 'none' : 'fadeIn 0.5s ease-out',
+      opacity: loading ? 0 : 1
+    }}>
       <div className="header">
         <section className="card portfolio">
           <div style={{minWidth:'260px'}}>
@@ -124,6 +151,7 @@ export default function AccountsPage({ accounts, transactions, onSend, onReceive
                 <option value="BTC">Bitcoin</option>
                 <option value="ETH">Ethereum</option>
                 <option value="SOL">Solana</option>
+                <option value="USDT">USDT</option>
               </select>
               <select 
                 className="input" 
@@ -138,7 +166,7 @@ export default function AccountsPage({ accounts, transactions, onSend, onReceive
             </div>
           </div>
           <div style={{display:'grid', gap:'12px', marginTop:'16px'}}>
-            {sortedAccounts.map(a => {
+            {sortedAccounts.map((a, i) => {
               const txCount = getAccountTransactionCount(a.id)
               const lastActivity = getAccountLastActivity(a.name)
               return (
@@ -151,7 +179,9 @@ export default function AccountsPage({ accounts, transactions, onSend, onReceive
                     display:'flex', 
                     alignItems:'center', 
                     gap:'20px',
-                    transition:'all 0.2s'
+                    transition:'all 0.2s',
+                    animation: loading ? 'none' : `slideIn 0.4s ease-out ${i * 0.1}s both`,
+                    opacity: loading ? 0 : 1
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(124,92,255,0.4)'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
@@ -201,7 +231,110 @@ export default function AccountsPage({ accounts, transactions, onSend, onReceive
             })}
           </div>
         </section>
+
+        <section className="card" style={{marginTop:'24px'}}>
+          <h3 style={{marginBottom:'16px'}}>Transaction History</h3>
+          {transactions.length === 0 ? (
+            <div style={{textAlign:'center', padding:'40px', color:'var(--muted)'}}>
+              No transactions yet
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Account</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>To Address</th>
+                  <th>Network/Token</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((tx, i) => (
+                  <tr key={i} style={{
+                    animation: loading ? 'none' : `slideIn 0.4s ease-out ${i * 0.05}s both`,
+                    opacity: loading ? 0 : 1
+                  }}>
+                    <td>{tx.t}</td>
+                    <td>{tx.acc}</td>
+                    <td>{tx.type === 'In' ? <span className="pill buy">In</span> : <span className="pill sell">Out</span>}</td>
+                    <td>{tx.amt}</td>
+                    <td style={{fontSize:'12px', fontFamily:'monospace'}}>
+                      {tx.toAddress ? (
+                        <span title={tx.toAddress} style={{cursor:'pointer'}}>
+                          {tx.toAddress.slice(0, 8)}...{tx.toAddress.slice(-6)}
+                        </span>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
+                    <td style={{fontSize:'12px'}}>
+                      {tx.network && tx.token ? (
+                        <span>
+                          <span style={{fontWeight:600}}>{tx.token}</span>
+                          <span className="muted"> • </span>
+                          <span className="muted">{tx.network}</span>
+                        </span>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        background: tx.status === 'Confirmed' 
+                          ? 'rgba(34,197,94,0.15)' 
+                          : tx.status === 'Pending'
+                          ? 'rgba(251,191,36,0.15)'
+                          : 'rgba(239,68,68,0.15)',
+                        color: tx.status === 'Confirmed'
+                          ? '#22c55e'
+                          : tx.status === 'Pending'
+                          ? '#fbbf24'
+                          : '#ef4444'
+                      }}>
+                        {tx.status}
+                      </span>
+                      {tx.txHash && (
+                        <div style={{marginTop:'4px', fontSize:'10px'}}>
+                          <a 
+                            href={`https://etherscan.io/tx/${tx.txHash}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{color:'rgba(124,92,255,0.8)', textDecoration:'none'}}
+                            title={tx.txHash}
+                          >
+                            View on Explorer
+                          </a>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
       </div>
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </main>
   )
 }

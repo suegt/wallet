@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { Account } from '../types'
 
 function iconFor(symbol: string) {
@@ -34,6 +34,12 @@ interface EarnPageProps {
  * Earn/Staking page - staking and earning opportunities
  */
 export default function EarnPage({ accounts, onSend, onReceive }: EarnPageProps) {
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 600)
+  }, [])
+
   const stakingOptions = [
     { 
       symbol: 'ETH', 
@@ -119,7 +125,10 @@ export default function EarnPage({ accounts, onSend, onReceive }: EarnPageProps)
   }, 0)
 
   return (
-    <main className="main">
+    <main className="main" style={{
+      animation: loading ? 'none' : 'fadeIn 0.5s ease-out',
+      opacity: loading ? 0 : 1
+    }}>
       <div className="header">
         <section className="card portfolio">
           <div style={{minWidth:'260px'}}>
@@ -222,7 +231,9 @@ export default function EarnPage({ accounts, onSend, onReceive }: EarnPageProps)
                 style={{
                   padding:'20px', 
                   border:'1px solid var(--line)',
-                  transition:'all 0.2s'
+                  transition:'all 0.2s',
+                  animation: loading ? 'none' : `fadeIn 0.5s ease-out ${i * 0.1}s both`,
+                  opacity: loading ? 0 : 1
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(124,92,255,0.4)'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
@@ -352,6 +363,12 @@ export default function EarnPage({ accounts, onSend, onReceive }: EarnPageProps)
           </div>
         </section>
       </div>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </main>
   )
 }

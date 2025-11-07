@@ -18,6 +18,7 @@ function iconFor(symbol: string) {
     </svg>
   )
   if (s === 'SOL') return '◎'
+  if (s === 'USDT') return '💵'
   return '◉'
 }
 
@@ -41,10 +42,14 @@ interface MainProps {
  * Main dashboard component displaying portfolio, accounts, and transactions
  */
 export default function Main({ accounts, txs, filter, onFilterChange, onSend, onReceive }: MainProps) {
-  // Initialize prices from account data
+  const [loading, setLoading] = useState(true)
   const [prices, setPrices] = useState<Record<string, number>>(
     Object.fromEntries(accounts.map(a => [a.id, a.price]))
   )
+
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 600)
+  }, [])
 
   // Simulate real-time price updates with small random fluctuations
   useEffect(() => {
@@ -86,13 +91,32 @@ export default function Main({ accounts, txs, filter, onFilterChange, onSend, on
     setWeekly((Math.random() * 10 - 5).toFixed(2))
   }, [total])
 
+  // Skeleton loader
+  const SkeletonCard = ({ height = '100px', width = '100%' }: { height?: string, width?: string }) => (
+    <div style={{
+      width,
+      height,
+      background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%)',
+      backgroundSize: '200% 100%',
+      borderRadius: '12px',
+      animation: 'shimmer 1.5s ease-in-out infinite'
+    }} />
+  )
+
   return (
-    <main className="main">
+    <main className="main" style={{
+      animation: loading ? 'none' : 'fadeIn 0.5s ease-out',
+      opacity: loading ? 0 : 1
+    }}>
       <div className="header">
         <section className="card portfolio">
           <div style={{minWidth:'260px'}}>
             <div className="muted" style={{fontSize:'12px', textTransform:'uppercase', letterSpacing:'.12em'}}>Total Portfolio</div>
-            <div className="big-number">{usd(total)}</div>
+            {loading ? (
+              <SkeletonCard height="48px" width="200px" />
+            ) : (
+              <div className="big-number" style={{ animation: 'pulseValue 0.6s ease-in-out' }}>{usd(total)}</div>
+            )}
             <div className="muted">24h: {(parseFloat(weekly)/4).toFixed(2)}%</div>
             <div className="quick" style={{marginTop:'10px'}}>
               <button className="chip" onClick={onSend}>Send</button>
@@ -149,6 +173,7 @@ export default function Main({ accounts, txs, filter, onFilterChange, onSend, on
           <div className={`tab ${filter === 'BTC' ? 'active' : ''}`} onClick={() => onFilterChange('BTC')}>Bitcoin</div>
           <div className={`tab ${filter === 'ETH' ? 'active' : ''}`} onClick={() => onFilterChange('ETH')}>Ethereum</div>
           <div className={`tab ${filter === 'SOL' ? 'active' : ''}`} onClick={() => onFilterChange('SOL')}>Solana</div>
+          <div className={`tab ${filter === 'USDT' ? 'active' : ''}`} onClick={() => onFilterChange('USDT')}>USDT</div>
         </div>
         <section className="card">
           <h3>Accounts</h3>
@@ -157,10 +182,13 @@ export default function Main({ accounts, txs, filter, onFilterChange, onSend, on
               <tr><th style={{width:'34px'}}></th><th>Account</th><th>Balance</th><th>Price</th><th>Value (USD)</th><th></th></tr>
             </thead>
             <tbody>
-              {filteredAccounts.map(a => {
+              {filteredAccounts.map((a, i) => {
                 const price = prices[a.id] || a.price
                 return (
-                  <tr key={a.id}>
+                  <tr key={a.id} style={{
+                    animation: loading ? 'none' : `slideIn 0.4s ease-out ${i * 0.1}s both`,
+                    opacity: loading ? 0 : 1
+                  }}>
                     <td style={{opacity:0.9}}>{iconFor(a.symbol)}</td>
                     <td>{a.name}</td>
                     <td>{a.balance} {a.symbol}</td>
@@ -177,22 +205,103 @@ export default function Main({ accounts, txs, filter, onFilterChange, onSend, on
           <h3>Recent Activity</h3>
           <table>
             <thead>
-              <tr><th>Date</th><th>Account</th><th>Type</th><th>Amount</th><th>Status</th></tr>
+              <tr>
+                <th>Date</th>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>To Address</th>
+                <th>Network/Token</th>
+                <th>Status</th>
+              </tr>
             </thead>
             <tbody>
               {txs.map((tx, i) => (
-                <tr key={i}>
+                <tr key={i} style={{
+                  animation: loading ? 'none' : `slideIn 0.4s ease-out ${i * 0.1}s both`,
+                  opacity: loading ? 0 : 1
+                }}>
                   <td>{tx.t}</td>
                   <td>{tx.acc}</td>
                   <td>{tx.type === 'In' ? <span className="pill buy">In</span> : <span className="pill sell">Out</span>}</td>
                   <td>{tx.amt}</td>
-                  <td>{tx.status}</td>
+                  <td style={{fontSize:'12px', fontFamily:'monospace'}}>
+                    {tx.toAddress ? (
+                      <span title={tx.toAddress}>
+                        {tx.toAddress.slice(0, 6)}...{tx.toAddress.slice(-4)}
+                      </span>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </td>
+                  <td style={{fontSize:'12px'}}>
+                    {tx.network && tx.token ? (
+                      <span>
+                        <span style={{fontWeight:600}}>{tx.token}</span>
+                        <span className="muted"> • </span>
+                        <span className="muted">{tx.network}</span>
+                      </span>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </td>
+                  <td>
+                    <span style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      background: tx.status === 'Confirmed' 
+                        ? 'rgba(34,197,94,0.15)' 
+                        : tx.status === 'Pending'
+                        ? 'rgba(251,191,36,0.15)'
+                        : 'rgba(239,68,68,0.15)',
+                      color: tx.status === 'Confirmed'
+                        ? '#22c55e'
+                        : tx.status === 'Pending'
+                        ? '#fbbf24'
+                        : '#ef4444'
+                    }}>
+                      {tx.status}
+                    </span>
+                    {tx.txHash && (
+                      <div style={{marginTop:'4px', fontSize:'10px'}}>
+                        <a 
+                          href={`https://etherscan.io/tx/${tx.txHash}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{color:'rgba(124,92,255,0.8)', textDecoration:'none'}}
+                          title={tx.txHash}
+                        >
+                          View on Explorer
+                        </a>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </section>
       </div>
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulseValue {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.9; }
+        }
+      `}</style>
     </main>
   )
 }

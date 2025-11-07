@@ -19,6 +19,10 @@ export interface Transaction {
   type: 'In' | 'Out'
   amt: string // amount
   status: string
+  toAddress?: string // recipient address
+  token?: string // token symbol (BTC, ETH, SOL, USDT)
+  network?: string // network name
+  txHash?: string // transaction hash
 }
 
 export type CryptoSymbol = 'BTC' | 'ETH' | 'SOL' | 'USDT'

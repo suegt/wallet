@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface DiscoverPageProps {
   onSend: () => void
@@ -11,7 +11,12 @@ interface DiscoverPageProps {
  * Discover page - discover new features, apps, and services
  */
 export default function DiscoverPage({ onSend, onReceive }: DiscoverPageProps) {
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 600)
+  }, [])
 
   const features = [
     { 
@@ -135,7 +140,10 @@ export default function DiscoverPage({ onSend, onReceive }: DiscoverPageProps) {
     : popularDApps
 
   return (
-    <main className="main">
+    <main className="main" style={{
+      animation: loading ? 'none' : 'fadeIn 0.5s ease-out',
+      opacity: loading ? 0 : 1
+    }}>
       <div className="header">
         <section className="card portfolio">
           <div style={{minWidth:'260px'}}>
@@ -166,7 +174,9 @@ export default function DiscoverPage({ onSend, onReceive }: DiscoverPageProps) {
                   border:'1px solid var(--line)', 
                   cursor:'pointer', 
                   transition:'all 0.2s',
-                  background: 'linear-gradient(135deg, rgba(124,92,255,0.05), rgba(0,0,0,0))'
+                  background: 'linear-gradient(135deg, rgba(124,92,255,0.05), rgba(0,0,0,0))',
+                  animation: loading ? 'none' : `fadeIn 0.5s ease-out ${i * 0.1}s both`,
+                  opacity: loading ? 0 : 1
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(124,92,255,0.4)'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
@@ -219,7 +229,9 @@ export default function DiscoverPage({ onSend, onReceive }: DiscoverPageProps) {
                   padding:'20px', 
                   border:'1px solid var(--line)', 
                   cursor:'pointer', 
-                  transition:'all 0.2s'
+                  transition:'all 0.2s',
+                  animation: loading ? 'none' : `fadeIn 0.5s ease-out ${i * 0.08}s both`,
+                  opacity: loading ? 0 : 1
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(124,92,255,0.4)'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
@@ -270,6 +282,12 @@ export default function DiscoverPage({ onSend, onReceive }: DiscoverPageProps) {
           </div>
         </section>
       </div>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </main>
   )
 }

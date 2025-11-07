@@ -17,6 +17,7 @@ interface MarketData {
  * Markets page - view cryptocurrency market data
  */
 export default function MarketsPage() {
+  const [loading, setLoading] = useState(true)
   const [markets, setMarkets] = useState<MarketData[]>([
     { symbol: 'BTC', name: 'Bitcoin', price: 68000, change24h: 2.5, change7d: 5.8, volume: 25000000000, marketCap: 1330000000000, rank: 1 },
     { symbol: 'ETH', name: 'Ethereum', price: 3500, change24h: -1.2, change7d: 3.4, volume: 12000000000, marketCap: 420000000000, rank: 2 },
@@ -30,6 +31,10 @@ export default function MarketsPage() {
 
   const [sortBy, setSortBy] = useState<'rank' | 'price' | 'change24h' | 'marketCap'>('rank')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 600)
+  }, [])
 
   useEffect(() => {
     // Simulate price updates
@@ -86,7 +91,10 @@ export default function MarketsPage() {
   const topLosers = markets.filter(m => m.change24h < 0).sort((a, b) => a.change24h - b.change24h).slice(0, 5)
 
   return (
-    <main className="main">
+    <main className="main" style={{
+      animation: loading ? 'none' : 'fadeIn 0.5s ease-out',
+      opacity: loading ? 0 : 1
+    }}>
       <div className="header">
         <section className="card portfolio">
           <div style={{minWidth:'260px'}}>
@@ -148,9 +156,12 @@ export default function MarketsPage() {
                 <th>Market Cap</th>
               </tr>
             </thead>
-            <tbody>
-              {sortedMarkets.map(m => (
-                <tr key={m.symbol}>
+                  <tbody>
+                    {sortedMarkets.map((m, i) => (
+                      <tr key={m.symbol} style={{
+                        animation: loading ? 'none' : `slideIn 0.4s ease-out ${i * 0.05}s both`,
+                        opacity: loading ? 0 : 1
+                      }}>
                   <td>
                     <span className="badge" style={{fontSize:'11px', padding:'4px 8px'}}>#{m.rank}</span>
                   </td>
@@ -270,6 +281,16 @@ export default function MarketsPage() {
           </section>
         </div>
       </div>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </main>
   )
 }
